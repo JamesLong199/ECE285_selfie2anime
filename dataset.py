@@ -27,7 +27,7 @@ def get_full_list(root_dir,sub_dir):
     return data_list
 
 
-class Selfie_2_Anime(Dataset):
+class ImageDataset(Dataset):
     def __init__(self, data_list):
         self.data_list = data_list
 
@@ -48,4 +48,28 @@ class Selfie_2_Anime(Dataset):
         img = transf_img(img)
 
         return img
+    
+class Selfie2Anime_Dataset(Dataset):
+    '''
+    combine selfie dataset and anime dataset together
+    
+    return (selfie_image, anime_image)
+    
+    '''
+    
+    def __init__(self, selfie_dataset, anime_dataset):
+        if len(selfie_dataset) != len(anime_dataset):
+            raise AttributeError("Dataset size does not match!")
+            
+        self.selfie_dataset = selfie_dataset
+        self.anime_dataset = anime_dataset
+        
+    def __len__(self):
+        return len(self.selfie_dataset)
+
+    def __getitem__(self, i):
+        selfie_img = self.selfie_dataset[i]
+        anime_img = self.anime_dataset[i]
+
+        return (selfie_img, anime_img)
 
