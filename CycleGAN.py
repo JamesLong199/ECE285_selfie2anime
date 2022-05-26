@@ -65,9 +65,9 @@ class ImageBuffer():
 
 class CycleGAN():
 
-    def __init__(self):
+    def __init__(self, use_cuda=False):
 
-        if torch.cuda.is_available():
+        if use_cuda:
             self.device = torch.device("cuda")
         else:
             self.device = torch.device("cpu")
@@ -103,6 +103,9 @@ class CycleGAN():
         self.loss_fn_D = Discriminator_Loss()
         
         self.loss_G = None
+        self.loss_GAN = None
+        self.loss_cycle = None
+        self.loss_id = None
         self.loss_D1 = None
         self.loss_D2 = None
 
@@ -185,28 +188,33 @@ class CycleGAN():
         forward pass, compute loss and update gradient for generators
 
         '''
-
+        
         self.fake_img_2 = self.G_12(self.images_1)
         self.fake_img_1 = self.G_21(self.images_2)
 
-        rec_2 = self.G_12(self.fake_img_1)
-        rec_1 = self.G_21(self.fake_img_2)
+        self.rec_img_2 = self.G_12(self.fake_img_1)
+        self.rec_img_1 = self.G_21(self.fake_img_2)
 
-        id_2 = self.G_12(self.images_2)
-        id_1 = self.G_21(self.images_1)
+        self.id_img_2 = self.G_12(self.images_2)
+        self.id_img_1 = self.G_21(self.images_1)
         
         fake_score_1 = self.D_1(self.fake_img_1)
         fake_score_2 = self.D_2(self.fake_img_2)
         
         loss_GAN = self.loss_fn_GAN(fake_score_1) + self.loss_fn_GAN(fake_score_2)
-        loss_cycle = self.loss_fn_cycle(rec_1, self.images_1) + self.loss_fn_cycle(rec_2, self.images_2)
-        loss_id = self.loss_fn_id(id_1, self.images_1) + self.loss_fn_id(id_2, self.images_2)
+        loss_cycle = self.lam * (self.loss_fn_cycle(self.rec_img_1, self.images_1) + self.loss_fn_cycle(self.rec_img_2, self.images_2))
+        loss_id = self.loss_fn_id(self.id_img_1, self.images_1) + self.loss_fn_id(self.id_img_2, self.images_2)
         
-        self.loss_G = loss_GAN + self.lam * loss_cycle + loss_id
+        loss_G = loss_GAN + loss_cycle + loss_id
         
         self.G_opt.zero_grad()
-        self.loss_G.backward()
+        loss_G.backward()
         self.G_opt.step()
+        
+        self.loss_GAN = loss_GAN.item()
+        self.loss_cycle = loss_cycle.item()
+        self.loss_id = loss_id.item()
+        self.loss_G = loss_G.item()
         
         
         
@@ -216,23 +224,48 @@ class CycleGAN():
         and update gradient for discriminators
         
         '''
-        fake_img_1 = self.fake_1_buffer.query(self.fake_img_1)
-        fake_img_2 = self.fake_2_buffer.query(self.fake_img_2)
+        fake_img_1 = self.fake_1_buffer.query(self.fake_img_1.detach())
+        fake_img_2 = self.fake_2_buffer.query(self.fake_img_2.detach())
         
         real_score_1 = self.D_1(self.images_1)
         fake_score_1 = self.D_1(fake_img_1)
         real_score_2 = self.D_2(self.images_2)
         fake_score_2 = self.D_2(fake_img_2)
         
-        self.loss_D1 = self.loss_fn_D(real_score_1, fake_score_1)
-        self.loss_D2 = self.loss_fn_D(real_score_2, fake_score_2)
-        
+        loss_D1 = self.loss_fn_D(real_score_1, fake_score_1)
+        loss_D2 = self.loss_fn_D(real_score_2, fake_score_2)
         
         self.D_1_opt.zero_grad()
-        self.loss_D1.backward()
+        loss_D1.backward()
         self.D_1_opt.step()
         
         self.D_2_opt.zero_grad()
-        self.loss_D2.backward()
+        loss_D2.backward()
         self.D_2_opt.step()
+        
+        self.loss_D1 = loss_D1.item()
+        self.loss_D2 = loss_D2.item()
+        
+        
+    def test(self):
+        self.set_mode_eval()
+        
+        with torch.no_grad():
+            self.fake_img_2 = self.G_12(self.images_1)
+            self.fake_img_1 = self.G_21(self.images_2)
+
+            self.rec_img_2 = self.G_12(self.fake_img_1)
+            self.rec_img_1 = self.G_21(self.fake_img_2)
+            
+    def save(self, root_dir, label, epoch):
+        torch.save(self.G_12.state_dict(), path="{}/{}_ep{}_G_12.pth".format(root_dir,label,epoch))
+        torch.save(self.G_21.state_dict(), path="{}/{}_ep{}_G_21.pth".format(root_dir,label,epoch))
+        torch.save(self.D_1.state_dict(), path="{}/{}_ep{}_D_1.pth".format(root_dir,label,epoch))
+        torch.save(self.D_2.state_dict(), path="{}/{}_ep{}_D_2.pth".format(root_dir,label,epoch))
+
+        
+        
+
+        
+        
         
