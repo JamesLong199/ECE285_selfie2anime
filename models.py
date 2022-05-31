@@ -130,7 +130,8 @@ class Generator(nn.Module):
             R_K_Block(256, 256),
             U_K_Block(256, 128),
             U_K_Block(128, 64),
-            C7S1_K_Block(64, 3)
+            C7S1_K_Block(64, 3),
+            nn.Tanh()
         )
 
     def forward(self, x):
@@ -146,6 +147,7 @@ class Discriminator(nn.Module):
             C_K_Block(128, 256),
             C_K_Block(256, 512, downsample=False),
             nn.Conv2d(512, 1, (4,4), stride=1, padding=1),
+            nn.Sigmoid()
         )
 
     def forward(self, x):
