@@ -28,7 +28,7 @@ def get_full_list(root_dir,sub_dir):
 
 
 class ImageDataset(Dataset):
-    def __init__(self, data_list):
+    def __init__(self, data_list, ):
         self.data_list = data_list
 
     def __len__(self):
@@ -37,17 +37,17 @@ class ImageDataset(Dataset):
     def __getitem__(self, i):
         f_name = self.data_list[i]
 
-        normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-
+        # normalize pixel values to [-1., 1] range
         transf_img = transforms.Compose([
             transforms.ToTensor(),
-            normalize
+            transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]) 
         ])
 
         img = Image.open(f_name)
         img = transf_img(img)
 
         return img
+        
     
 class Selfie2Anime_Dataset(Dataset):
     '''

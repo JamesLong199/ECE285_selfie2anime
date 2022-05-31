@@ -142,9 +142,9 @@ class CycleGAN():
 
         '''
         if isinstance(layer, nn.Linear):
-            nn.init.normal(layer.weight, 0., 0.02)
+            nn.init.normal_(layer.weight, 0., 0.02)
         elif isinstance(layer, nn.Conv2d):
-            nn.init.normal(layer.weight, 0., 0.02)
+            nn.init.normal_(layer.weight, 0., 0.02)
 
 
     def init_img_buffer(self, size=50):
@@ -257,11 +257,47 @@ class CycleGAN():
             self.rec_img_2 = self.G_12(self.fake_img_1)
             self.rec_img_1 = self.G_21(self.fake_img_2)
             
-    def save(self, root_dir, label, epoch):
-        torch.save(self.G_12.state_dict(), path="{}/{}_ep{}_G_12.pth".format(root_dir,label,epoch))
-        torch.save(self.G_21.state_dict(), path="{}/{}_ep{}_G_21.pth".format(root_dir,label,epoch))
-        torch.save(self.D_1.state_dict(), path="{}/{}_ep{}_D_1.pth".format(root_dir,label,epoch))
-        torch.save(self.D_2.state_dict(), path="{}/{}_ep{}_D_2.pth".format(root_dir,label,epoch))
+    def save(self, checkpoint_dir, epoch):
+
+        torch.save({
+            'epoch': epoch,
+            'G_12_state_dict': self.G_12.state_dict(),
+            'G_21_state_dict': self.G_21.state_dict(),
+            'D_1_state_dict': self.D_1.state_dict(),
+            'D_2_state_dict': self.D_2.state_dict(),
+            'G_opt_state_dict': self.G_opt.state_dict(),
+            'D_1_opt_state_dict': self.D_1_opt.state_dict(),
+            'D_2_opt_state_dict': self.D_2_opt.state_dict(),
+            'loss_G': self.loss_G,
+            'loss_GAN': self.loss_GAN,
+            'loss_cycle': self.loss_cycle,
+            'loss_id': self.loss_id,
+            'loss_D1': self.loss_D1,
+            'loss_D2': self.loss_D2,
+            }, checkpoint_dir)
+
+
+    def load(self, checkpoint_dir):
+        checkpoint = torch.load(checkpoint_dir)
+
+        self.G_12.load_state_dict(checkpoint['G_12_state_dict'])
+        self.G_21.load_state_dict(checkpoint['G_21_state_dict'])
+        self.D_1.load_state_dict(checkpoint['D_1_state_dict'])
+        self.D_2.load_state_dict(checkpoint['D_2_state_dict'])
+
+        self.G_opt.load_state_dict(checkpoint['G_opt_state_dict'])
+        self.D_1_opt.load_state_dict(checkpoint['D_1_opt_state_dict'])
+        self.D_2_opt.load_state_dict(checkpoint['D_2_opt_state_dict'])
+
+        self.loss_G = checkpoint['loss_G']
+        self.loss_GAN = checkpoint['loss_GAN']
+        self.loss_cycle = checkpoint['loss_cycle']
+        self.loss_id = checkpoint['loss_id']
+        self.loss_D1 = checkpoint['loss_D1']
+        self.loss_D2 = checkpoint['loss_D2']
+
+
+
 
         
         
