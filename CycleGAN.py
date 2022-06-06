@@ -80,8 +80,11 @@ class CycleGAN():
         self.D_2 = self.init_network("Discriminator")
 
         self.G_opt = self.init_optimizer("Adam", chain(self.G_12.parameters(), self.G_21.parameters()), 2e-4)
-        self.D_1_opt = self.init_optimizer("Adam", self.D_1.parameters(), 2e-4)
-        self.D_2_opt = self.init_optimizer("Adam", self.D_2.parameters(), 2e-4)
+        self.D_1_opt = self.init_optimizer("Adam", self.D_1.parameters(), 2e-4)  # default
+        self.D_2_opt = self.init_optimizer("Adam", self.D_2.parameters(), 2e-4)  # default
+
+        # self.D_1_opt = self.init_optimizer("Adam", self.D_1.parameters(), 2e-5)  # 2e-4 --> 2e-5
+        # self.D_2_opt = self.init_optimizer("Adam", self.D_2.parameters(), 2e-5)  # 2e-4 --> 2e-5
 
         self.fake_1_buffer = self.init_img_buffer(size=50)
         self.fake_2_buffer = self.init_img_buffer(size=50)
@@ -203,7 +206,7 @@ class CycleGAN():
         
         loss_GAN = self.loss_fn_GAN(fake_score_1) + self.loss_fn_GAN(fake_score_2)
         loss_cycle = self.lam * (self.loss_fn_cycle(self.rec_img_1, self.images_1) + self.loss_fn_cycle(self.rec_img_2, self.images_2))
-        loss_id = self.loss_fn_id(self.id_img_1, self.images_1) + self.loss_fn_id(self.id_img_2, self.images_2)
+        loss_id = 0.5 * self.lam * (self.loss_fn_id(self.id_img_1, self.images_1) + self.loss_fn_id(self.id_img_2, self.images_2))
         
         loss_G = loss_GAN + loss_cycle + loss_id
         
@@ -277,8 +280,8 @@ class CycleGAN():
             }, checkpoint_dir)
 
 
-    def load(self, checkpoint_dir):
-        checkpoint = torch.load(checkpoint_dir)
+    def load(self, checkpoint_dir, map_location):
+        checkpoint = torch.load(checkpoint_dir, map_location)
 
         self.G_12.load_state_dict(checkpoint['G_12_state_dict'])
         self.G_21.load_state_dict(checkpoint['G_21_state_dict'])

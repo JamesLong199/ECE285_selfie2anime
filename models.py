@@ -3,18 +3,25 @@ import torch.nn as nn
 import numpy as np
 
 class C7S1_K_Block(nn.Module):
-    def __init__(self, C_in, C_out):
+    def __init__(self, C_in, C_out, use_norm=True):
         '''
         X --> 7x7 conv (stride 1, reflection padding) --> InstanceNorm --> ReLU
 
         '''
-        super(C7S1_K_Block, self).__init__()
+        self.conv_block = self.build_conv_block(C_in, C_out, use_norm)
 
-        self.conv_block = nn.Sequential(
-            nn.Conv2d(C_in, C_out, (7,7), stride=1, padding=3, padding_mode='reflect'),
-            nn.InstanceNorm2d(C_out),
-            nn.ReLU()
-        )
+    def build_conv_block(self, C_in, C_out, use_norm):
+        super(C7S1_K_Block, self).__init__()
+        conv_block = [nn.Conv2d(C_in, C_out, (7,7), stride=1, padding=3, padding_mode='reflect')]
+
+        if use_norm:
+            conv_block += [
+                nn.InstanceNorm2d(C_out),
+                nn.ReLU()
+            ]
+        
+        return nn.Sequential(*conv_block)
+        
 
     def forward(self, x):
         return self.conv_block(x)
@@ -130,7 +137,7 @@ class Generator(nn.Module):
             R_K_Block(256, 256),
             U_K_Block(256, 128),
             U_K_Block(128, 64),
-            C7S1_K_Block(64, 3),
+            C7S1_K_Block(64, 3, use_norm=False),
             nn.Tanh()
         )
 

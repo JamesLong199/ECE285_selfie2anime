@@ -40,11 +40,16 @@ if __name__ == '__main__':
     PREV_CHECKPOINT = args.prev_checkpoint
     CHECKPOINT_DIR = args.checkpoint_dir  
     LOSS_HISTORY_DIR = args.loss_history_dir
-    # print_every = 100
+
+    save_every = 5
     use_cuda = False
 
     if USE_GPU and torch.cuda.is_available():
         use_cuda = True
+        device = torch.device('cuda')
+    else:
+        device = torch.device('cpu')
+    
     print('use_cuda:', use_cuda)
 
     print("LOAD_PREV:",LOAD_PREV)
@@ -52,9 +57,9 @@ if __name__ == '__main__':
     model = CycleGAN(use_cuda)
 
     if LOAD_PREV:
-        start_epoch = torch.load(PREV_CHECKPOINT)["epoch"]
+        start_epoch = torch.load(PREV_CHECKPOINT, device)["epoch"]
 
-        model.load(PREV_CHECKPOINT)
+        model.load(PREV_CHECKPOINT, device)
 
         assert os.path.exists(LOSS_HISTORY_DIR)
         with open(LOSS_HISTORY_DIR, "rb") as f:
@@ -74,7 +79,6 @@ if __name__ == '__main__':
     print('start_epoch:', start_epoch)
 
     dtype = torch.float32 
-
 
     test_A_list = get_full_list('data', 'testA')
     test_A_set = ImageDataset(test_A_list)
@@ -127,10 +131,12 @@ if __name__ == '__main__':
             
 #             process_time = start_time - time.time() - prepare_time
 
-            # if i % print_every == 0:
-            
-#                 pbar.set_description("Compute efficiency: {:.2f}, epoch: {}/{}:".format(
-#                     process_time/(process_time+prepare_time), epoch, epochs))
+            # if (i+1) % save_every == 0:
+            #     model.save(CHECKPOINT_DIR, i+1)
+
+            #     with open(LOSS_HISTORY_DIR, "wb") as f:
+            #         pickle.dump(loss_history, f)
+#                 
                 
             pbar.set_description("epoch: {}/{}:".format(epoch, EPOCH))
             

@@ -28,7 +28,7 @@ def get_full_list(root_dir,sub_dir):
 
 
 class ImageDataset(Dataset):
-    def __init__(self, data_list, ):
+    def __init__(self, data_list):
         self.data_list = data_list
 
     def __len__(self):
@@ -72,4 +72,31 @@ class Selfie2Anime_Dataset(Dataset):
         anime_img = self.anime_dataset[i]
 
         return (selfie_img, anime_img)
+
+
+class UserImageDataset(ImageDataset):
+    def __init__(self, data_list):
+        super(UserImageDataset, self).__init__(data_list)
+    
+    def __getitem__(self, i):
+        f_name = self.data_list[i]
+        img = np.array(Image.open(f_name))
+        H,W,_ = img.shape
+        if H > W:
+            offset = int((H-W)/2)
+            img = img[offset:H-offset,:,:]
+        else:
+            offset = int((W-H)/2)
+            img = img[:,offset:W-offset,:]
+
+        # normalize pixel values to [-1., 1] range
+        transf_img = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Resize((256,256)),
+            transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]) 
+        ])
+
+        img = transf_img(img)
+
+        return img
 
